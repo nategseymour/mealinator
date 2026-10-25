@@ -529,3 +529,38 @@ body {
 .hide {
     display: none;
 }
+
+/* Homepage recipe search */
+.search-controls {
+    margin: 1rem 0;
+}
+
+.search-controls label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: bold;
+}
+
+.search-input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#recipe-search {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem;
+    font-size: 1rem;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+}
+
+#clear-search {
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+}
+
+#search-status {
+    min-height: 1.2em;
+    margin: 0.4rem 0;
+}

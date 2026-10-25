@@ -2,42 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Caswell Kitchen</title>
     <link rel="stylesheet" href="style.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Cooking">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 
-<script>
-(function() {
-    if (!window.navigator.standalone) {
-        return;
-    }
+    <script>
+    (function() {
+        if (window.navigator.standalone) {
+            document.addEventListener('click', function(event) {
+                var target = event.target;
 
-    document.addEventListener('click', function(event) {
-        var element = event.target;
+                while (target && target.tagName !== 'A') {
+                    target = target.parentNode;
+                }
 
-        while (element && element.tagName !== 'A') {
-            element = element.parentNode;
+                if (target && target.getAttribute('href')) {
+                    var href = target.getAttribute('href');
+
+                    if (href.indexOf('http://') !== 0 &&
+                        href.indexOf('https://') !== 0 &&
+                        href.charAt(0) !== '#') {
+                        event.preventDefault();
+                        window.location.href = target.href;
+                    }
+                }
+            }, false);
         }
-
-        if (!element || !element.href) {
-            return;
-        }
-
-        var href = element.href;
-
-        // Only intercept links staying on our local site.
-        if (href.indexOf(window.location.origin) === 0) {
-            event.preventDefault();
-            window.location.href = href;
-        }
-    }, false);
-})();
-</script>
-
+    })();
+    </script>
 </head>
 <body>
     <header class="site-header">
@@ -46,32 +41,55 @@
         <p class="site-attribution">Database exported: {{ db_exported }} | Rendered: {{ now }}</p>
     </header>
 
+    <div class="search-controls">
+        <label for="recipe-search">Search recipes and ingredients:</label>
+        <div class="search-input-row">
+            <input
+                type="search"
+                id="recipe-search"
+                placeholder="Try chicken, garlic, or tofu..."
+                autocomplete="off"
+            >
+            <button type="button" id="clear-search">Clear</button>
+        </div>
+        <p id="search-status" aria-live="polite"></p>
+    </div>
+
     <div class="controls-container">
         <div class="filter-controls">
-            <label>Filter by tag:</label>
-            <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">All</button>
-                {% for tag in all_tags %}
-                <button class="filter-btn" data-filter="{{ tag }}">{{ tag }}</button>
-                {% endfor %}
-            </div>
+            <button type="button" class="filter-btn active" data-filter="all">All</button>
+            {% for tag in all_tags %}
+            <button type="button" class="filter-btn" data-filter="{{ tag | e }}">{{ tag }}</button>
+            {% endfor %}
         </div>
 
         <div class="sort-controls">
             <label for="sort-select">Sort by:</label>
-            <select id="sort-select" class="sort-select">
+            <select id="sort-select">
                 <option value="order">Default Order</option>
-                <option value="alphabetical">Alphabetical (A-Z)</option>
-                <option value="alphabetical-reverse">Alphabetical (Z-A)</option>
+                <option value="alphabetical">Alphabetical A-Z</option>
+                <option value="alphabetical-reverse">Alphabetical Z-A</option>
             </select>
         </div>
     </div>
 
     <main class="recipe-grid" id="recipe-grid">
         {% for recipe in recipes %}
-        <a href="html/{{ recipe.filename }}.html" class="recipe-card" data-tags="{{ recipe.tags_str }}" data-order="{{ loop.index0 }}" data-title="{{ recipe.title }}">
+        <a
+            href="html/{{ recipe.filename }}.html"
+            class="recipe-card"
+            data-tags="{{ recipe.tags_str | e }}"
+            data-order="{{ loop.index0 }}"
+            data-title="{{ recipe.title | e }}"
+            data-search="{{ recipe.search_text | e }}"
+        >
             <div class="recipe-card-image">
-                <img src="images/thumbnails/{{ recipe.filename }}.jpg" alt="{{ recipe.title }}" loading="lazy" onerror="this.onerror=null; this.src='images/placeholder.jpg'">
+                <img
+                    src="images/thumbnails/{{ recipe.filename }}.jpg"
+                    alt="{{ recipe.title | e }}"
+                    loading="lazy"
+                    onerror="this.onerror=null; this.src='images/placeholder.jpg'"
+                >
             </div>
             <div class="recipe-card-content">
                 <h2 class="recipe-card-title">{{ recipe.title }}</h2>
@@ -81,85 +99,125 @@
     </main>
 
     <script>
-        // Progressive enhancement - only if JavaScript is available
-        (function() {
-            var currentFilter = 'all';
-            var currentSort = 'order';
-            var allCards = document.querySelectorAll('.recipe-card');
-            var grid = document.getElementById('recipe-grid');
-            var subtitle = document.querySelector('.site-subtitle');
+    (function() {
+        var currentFilter = 'all';
+        var currentSort = 'order';
+        var currentSearch = '';
 
-            // Filter and sort recipes using existing DOM elements
-            function displayRecipes() {
-                var cardsArray = Array.prototype.slice.call(allCards);
-                var visible = [];
+        var allCards = document.querySelectorAll('.recipe-card');
+        var grid = document.getElementById('recipe-grid');
+        var subtitle = document.querySelector('.site-subtitle');
+        var searchInput = document.getElementById('recipe-search');
+        var clearSearch = document.getElementById('clear-search');
+        var searchStatus = document.getElementById('search-status');
 
-                // Filter
-                cardsArray.forEach(function(card) {
-                    var tags = card.getAttribute('data-tags') || '';
-                    var shouldShow = currentFilter === 'all' || tags.indexOf(currentFilter) !== -1;
+        function displayRecipes() {
+            var cardsArray = Array.prototype.slice.call(allCards);
+            var visible = [];
 
-                    if (shouldShow) {
-                        card.style.display = '';
-                        visible.push(card);
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
+            // Apply both the selected tag/category and text search.
+            cardsArray.forEach(function(card) {
+                var tags = card.getAttribute('data-tags') || '';
+                var searchText = card.getAttribute('data-search') || '';
 
-                // Sort visible cards
-                if (currentSort === 'alphabetical') {
-                    visible.sort(function(a, b) {
-                        var titleA = a.getAttribute('data-title') || '';
-                        var titleB = b.getAttribute('data-title') || '';
-                        return titleA.localeCompare(titleB);
-                    });
-                } else if (currentSort === 'alphabetical-reverse') {
-                    visible.sort(function(a, b) {
-                        var titleA = a.getAttribute('data-title') || '';
-                        var titleB = b.getAttribute('data-title') || '';
-                        return titleB.localeCompare(titleA);
-                    });
+                // Preserve the existing tag-filter behavior.
+                var matchesTag =
+                    currentFilter === 'all' ||
+                    tags.indexOf(currentFilter) !== -1;
+
+                var matchesSearch =
+                    !currentSearch ||
+                    searchText.indexOf(currentSearch) !== -1;
+
+                if (matchesTag && matchesSearch) {
+                    card.style.display = '';
+                    visible.push(card);
                 } else {
-                    visible.sort(function(a, b) {
-                        var orderA = parseInt(a.getAttribute('data-order')) || 0;
-                        var orderB = parseInt(b.getAttribute('data-order')) || 0;
-                        return orderA - orderB;
-                    });
+                    card.style.display = 'none';
                 }
-
-                // Re-append in sorted order
-                visible.forEach(function(card) {
-                    grid.appendChild(card);
-                });
-
-                // Update count
-                subtitle.textContent = 'Showing ' + visible.length + ' of ' + allCards.length + ' recipes';
-            }
-
-            // Filter button clicks
-            var filterButtons = document.querySelectorAll('.filter-btn');
-            for (var i = 0; i < filterButtons.length; i++) {
-                filterButtons[i].addEventListener('click', function() {
-                    for (var j = 0; j < filterButtons.length; j++) {
-                        filterButtons[j].classList.remove('active');
-                    }
-                    this.classList.add('active');
-                    currentFilter = this.getAttribute('data-filter');
-                    displayRecipes();
-                });
-            }
-
-            // Sort select change
-            var sortSelect = document.getElementById('sort-select');
-            sortSelect.addEventListener('change', function() {
-                currentSort = this.value;
-                displayRecipes();
             });
 
-            // Initial display (just update counter, cards already rendered)
+            // Sort the visible cards.
+            if (currentSort === 'alphabetical') {
+                visible.sort(function(a, b) {
+                    var titleA = a.getAttribute('data-title') || '';
+                    var titleB = b.getAttribute('data-title') || '';
+                    return titleA.localeCompare(titleB);
+                });
+            } else if (currentSort === 'alphabetical-reverse') {
+                visible.sort(function(a, b) {
+                    var titleA = a.getAttribute('data-title') || '';
+                    var titleB = b.getAttribute('data-title') || '';
+                    return titleB.localeCompare(titleA);
+                });
+            } else {
+                visible.sort(function(a, b) {
+                    var orderA = parseInt(a.getAttribute('data-order'), 10) || 0;
+                    var orderB = parseInt(b.getAttribute('data-order'), 10) || 0;
+                    return orderA - orderB;
+                });
+            }
+
+            // Re-append visible cards in sorted order.
+            visible.forEach(function(card) {
+                grid.appendChild(card);
+            });
+
+            subtitle.textContent =
+                'Showing ' + visible.length + ' of ' +
+                allCards.length + ' recipes';
+
+            if (currentSearch && visible.length === 0) {
+                searchStatus.textContent =
+                    'No recipes found. Try another recipe name or ingredient.';
+            } else if (currentSearch) {
+                searchStatus.textContent =
+                    visible.length + ' matching recipe' +
+                    (visible.length === 1 ? '' : 's');
+            } else {
+                searchStatus.textContent = '';
+            }
+        }
+
+        // Tag/category filter buttons.
+        var filterButtons = document.querySelectorAll('.filter-btn');
+
+        for (var i = 0; i < filterButtons.length; i++) {
+            filterButtons[i].addEventListener('click', function() {
+                for (var j = 0; j < filterButtons.length; j++) {
+                    filterButtons[j].classList.remove('active');
+                }
+
+                this.classList.add('active');
+                currentFilter = this.getAttribute('data-filter');
+                displayRecipes();
+            });
+        }
+
+        // Sort selection.
+        var sortSelect = document.getElementById('sort-select');
+
+        sortSelect.addEventListener('change', function() {
+            currentSort = this.value;
             displayRecipes();
-        })();
+        });
+
+        // Search as the user types.
+        searchInput.addEventListener('input', function() {
+            currentSearch = this.value.toLowerCase().replace(/^\s+|\s+$/g, '');
+            displayRecipes();
+        });
+
+        // Clear the search without changing the selected tag or sort.
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            currentSearch = '';
+            displayRecipes();
+            searchInput.focus();
+        });
+
+        displayRecipes();
+    })();
     </script>
 </body>
 </html>
