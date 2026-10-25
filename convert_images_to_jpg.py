@@ -13,8 +13,8 @@ import subprocess
 import os
 import glob
 
-IMAGES_DIR = "images"
-THUMBNAILS_DIR = "images/thumbnails"
+IMAGES_DIR = "site/images"
+THUMBNAILS_DIR = "site/images/thumbnails"
 
 def convert_webp_to_jpg(webp_path, quality=85):
     """

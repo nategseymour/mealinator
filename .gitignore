@@ -4,3 +4,16 @@ index.html
 html/
 images/
 md/
+# Python cache, virtual environment, and temporary files
+__pycache__/
+*.py[cod]
+.venv/
+*.bak
+
+# macOS metadata and temporary filesystem files
+.DS_Store
+._*
+.fuse_hidden*
+
+# Generated static website
+/site/

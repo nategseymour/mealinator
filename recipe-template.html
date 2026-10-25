@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ name }} - Bernstein Recipes</title>
     <link rel="stylesheet" href="../style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cooking">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<script>
+(function() {
+    if (!window.navigator.standalone) {
+        return;
+    }
+
+    document.addEventListener('click', function(event) {
+        var element = event.target;
+
+        while (element && element.tagName !== 'A') {
+            element = element.parentNode;
+        }
+
+        if (!element || !element.href) {
+            return;
+        }
+
+        var href = element.href;
+
+        // Only intercept links staying on our local site.
+        if (href.indexOf(window.location.origin) === 0) {
+            event.preventDefault();
+            window.location.href = href;
+        }
+    }, false);
+})();
+</script>
+
 </head>
 <body>
     <nav class="recipe-nav">
@@ -50,14 +83,21 @@
                 </section>
 
                 <div class="recipe-body">
-                    {% if ingredients %}
+
+                    {% if ingredient_groups %}
                     <section class="recipe-ingredients">
                         <h2>Ingredients</h2>
-                        <ul class="ingredient-list">
-                            {% for ingredient in ingredients %}
-                            <li>{{ ingredient }}</li>
-                            {% endfor %}
-                        </ul>
+                        {% for group in ingredient_groups %}
+                            {% if group.title %}
+                            <h3>{{ group.title }}</h3>
+                            {% endif %}
+
+                            <ul class="ingredient-list">
+                                {% for ingredient in group.ingredients %}
+                                <li>{{ ingredient }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
                     </section>
                     {% endif %}
 

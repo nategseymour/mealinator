@@ -14,11 +14,12 @@ import subprocess
 import os
 import tempfile
 import filecmp
+import shutil
 
 DB_PATH = "mealie.db"
 CONTAINER_NAME = "mealie"
-IMAGES_DIR = "images"
-THUMBNAILS_DIR = "images/thumbnails"
+IMAGES_DIR = "site/images"
+THUMBNAILS_DIR = "site/images/thumbnails"
 
 def extract_images():
     # Create output directories
@@ -87,13 +88,15 @@ def extract_images():
             thumbnail_changed = False
 
             if not os.path.exists(local_original) or not filecmp.cmp(tmp_original_path, local_original):
-                os.replace(tmp_original_path, local_original)
+#               os.replace(tmp_original_path, local_original)
+                shutil.move(tmp_original_path, local_original)
                 original_changed = True
             else:
                 os.remove(tmp_original_path)
 
             if not os.path.exists(local_thumbnail) or not filecmp.cmp(tmp_thumbnail_path, local_thumbnail):
-                os.replace(tmp_thumbnail_path, local_thumbnail)
+#               os.replace(tmp_thumbnail_path, local_thumbnail)
+                shutil.move(tmp_thumbnail_path, local_thumbnail)
                 thumbnail_changed = True
             else:
                 os.remove(tmp_thumbnail_path)

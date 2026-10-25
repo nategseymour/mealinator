@@ -7,7 +7,7 @@ from file_utils import write_if_changed
 
 db_file = 'mealie.db'
 TEMPLATE_FILE = "index-template.html"
-output_file = "index.html"
+output_file = "site/index.html"
 
 time_fmt = '%Y/%m/%d %H:%M:%S'
 

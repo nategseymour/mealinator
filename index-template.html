@@ -3,12 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bernstein Recipes</title>
+    <title>Caswell Kitchen</title>
     <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cooking">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<script>
+(function() {
+    if (!window.navigator.standalone) {
+        return;
+    }
+
+    document.addEventListener('click', function(event) {
+        var element = event.target;
+
+        while (element && element.tagName !== 'A') {
+            element = element.parentNode;
+        }
+
+        if (!element || !element.href) {
+            return;
+        }
+
+        var href = element.href;
+
+        // Only intercept links staying on our local site.
+        if (href.indexOf(window.location.origin) === 0) {
+            event.preventDefault();
+            window.location.href = href;
+        }
+    }, false);
+})();
+</script>
+
 </head>
 <body>
     <header class="site-header">
-        <h1>Bernstein Recipes</h1>
+        <h1>Caswell Kitchen</h1>
         <p class="site-subtitle">Showing {{ recipe_count }} recipes</p>
         <p class="site-attribution">Database exported: {{ db_exported }} | Rendered: {{ now }}</p>
     </header>
